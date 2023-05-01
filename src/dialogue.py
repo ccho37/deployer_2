@@ -24,6 +24,61 @@ class V(Enum):
     date = 5
     interested = 6
 
+from PIL import Image
+from io import BytesIO
+
+
+class MacroGetPhoto_Rashford(Macro):
+    def run(self, ngrams: Ngrams, vars: Dict[str, Any], args: List[Any]):
+
+        url = "https://sofascores.p.rapidapi.com/v1/players/photo"
+        querystring = {"player_id": "814590"}
+        headers = {
+            "X-RapidAPI-Key": "73c83052efmshaa867d4a4f50068p1dde59jsn4703d6c45a54",
+            "X-RapidAPI-Host": "sofascores.p.rapidapi.com"
+        }
+
+        response = requests.request("GET", url, headers=headers, params=querystring)
+
+        # Open the image using PIL
+        image = Image.open(BytesIO(response.content))
+        image.show()
+
+class MacroGetPhoto_KANE(Macro):
+    def run(self, ngrams: Ngrams, vars: Dict[str, Any], args: List[Any]):
+
+        url = "https://sofascores.p.rapidapi.com/v1/players/photo"
+        querystring = {"player_id": "108579"}
+        headers = {
+            "X-RapidAPI-Key": "73c83052efmshaa867d4a4f50068p1dde59jsn4703d6c45a54",
+            "X-RapidAPI-Host": "sofascores.p.rapidapi.com"
+        }
+
+        response = requests.request("GET", url, headers=headers, params=querystring)
+
+        # Open the image using PIL
+        image = Image.open(BytesIO(response.content))
+        image.show()
+
+
+
+class MacroGetPhoto_kante(Macro):
+    def run(self, ngrams: Ngrams, vars: Dict[str, Any], args: List[Any]):
+
+        url = "https://sofascores.p.rapidapi.com/v1/players/photo"
+        querystring = {"player_id": "234148"}
+        headers = {
+            "X-RapidAPI-Key": "73c83052efmshaa867d4a4f50068p1dde59jsn4703d6c45a54",
+            "X-RapidAPI-Host": "sofascores.p.rapidapi.com"
+        }
+
+        response = requests.request("GET", url, headers=headers, params=querystring)
+
+        # Open the image using PIL
+        image = Image.open(BytesIO(response.content))
+        image.show()
+
+
 
 class MacroExplainStat(Macro):
     def run(self, ngrams: Ngrams, vars: Dict[str, Any], args: List[Any]):
@@ -226,7 +281,7 @@ class MacroSetKeyObsFavPlayer(Macro):
 class MacroGetInterested(Macro):
     def run(self, ngrams: Ngrams, vars: Dict[str, Any], args: List[Any]):
         interested = vars[V.interested.name][0]
-        if interested == 'true':
+        if interested == 'true' or interested == 't':
             vars['INTERESTED'] = 'true'
             # print('true')
         else:
@@ -301,9 +356,11 @@ macros = {
     'SET_INTERESTED': MacroGPTJSON('Do you think the user is interested in knowing more?',
                                    {V.interested.name: ["true", "false"]}
                                    ),
-    'GET_INTERESTED': MacroGetInterested()
+    'GET_INTERESTED': MacroGetInterested(),
+    'GET_PHOTO_RASH':MacroGetPhoto_Rashford(),
+    'GET_PHOTO_KANE':MacroGetPhoto_KANE(),
+    'GET_PHOTO_kante':MacroGetPhoto_kante()
 }
-
 
 def start_transition() -> DialogueFlow:
     transitions = {
@@ -313,7 +370,7 @@ def start_transition() -> DialogueFlow:
                 # If previous visitor, direct to familiar state.
                 # Else, give pop quiz and cache current visit.
                 '#IF(#VISITED_BEFORE)` Welcome back.`': 'new_familiar',
-                '`Nice to meet you. `#STORE_VISIT': 'pop_quiz'
+                '`Nice to meet you. `#STORE_VISIT': 'pop_quiz',
             }
         }
     }
@@ -332,6 +389,15 @@ def start_transition() -> DialogueFlow:
     df.load_transitions(favorite_player_state)
     df.load_transitions(team_key_players_state)
     df.load_transitions(team_state)
+    df.load_transitions(end_state)
+    df.load_transitions(fun_facts)
+    df.load_transitions(global_transitions)
+    df.load_transitions(team_recommendation)
+    df.load_transitions(arsenal_rec)
+    df.load_transitions(new_castle_rec)
+    df.load_transitions(liverpool_rec)
+    df.load_transitions(aston_villa_rec)
+    df.load_transitions(personal_story)
     df.add_macros(macros)
 
     # UNFAMILIAR DIALOGUE
@@ -343,7 +409,7 @@ def start_transition() -> DialogueFlow:
     df.load_transitions(kante_rec)
     df.load_transitions(personal_story)
     df.load_transitions(team_recommendation)
-    df.load_transitions(fun_fact)
+    df.load_transitions(fun_facts)
 
     return df
 
@@ -598,13 +664,13 @@ unfamiliar = {
     'state': 'unfamiliar',
     '`Well, I specialized in English Premier League. I hope I can give you some information about EPL. The Premier League was founded in 1992, '
     'replacing the First Division as the top tier of English football. Does this sound interesting to you?`': {
-        '[yes]': {
+        '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
             '`Great! Let\'s start with one of the most successful teams in the EPL historically! Manchester United is one of the most successful teams in the English Premier League. The famous player '
             'Cristiano Ronaldo was once a member of Manchester United!`': {
                 '#SET_INTERESTED #GET_INTERESTED': {
                     '#IF($INTERESTED=true) `Manchester United can be one of my favorite teams. Do you have any favorite team in EPL so far?`': {
-                        '[yes]': {
-                            '`Good for you! `': 'match_discussion'
+                        '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
+                            '`Good for you! If I have to pick one, and sorry if I ask you this again,`': 'favorite_team'
                         },
                         'error': {
                             '`Oh that\'s fine. I watched Manchester United\'s recent game with Sevilla, another team in EPL. It was so intense! They got 2-2 eventually.`': {
@@ -617,27 +683,28 @@ unfamiliar = {
                                             'They have long been rivals with each other and Hotspur currently ranks one below Manchester United!'
                                             'Do you bother betting on their results?`': {
                                                 '#UNX': {
-                                                    '` I would say 2-0. It somehow made me recall their game last '
+                                                    '`I would say 2-0. It somehow made me recall their game last '
                                                     'year in October. They had 0-0 at half time.`':
                                                         'player_recommendation'
                                                 },
-                                            }
-                                        },
-                                        '#IF($INTERESTED=false)': 'fun_fact'
+                                            },
+                                            '#IF($INTERESTED=false)': 'player_recommendation'
+                                        }
                                     },
-                                    '#IF($INTERESTED=false)': 'fun_fact'
+                                    '#IF($INTERESTED=false)': 'player_recommendation'
                                 }
                             }
                         },
 
                     },
-                    '#IF($INTERESTED=false)': 'fun_fact'
+                    '#IF($INTERESTED=false)': 'player_recommendation'
                 },
-                '#IF($INTERESTED=false)': 'fun_fact'
+                '#IF($INTERESTED=false)': 'player_recommendation'
             }
-        }
-    },
-    '`[no]`': 'player_recommendation'
+        },
+        '[{nope, nah, not, no}]': 'player_recommendation'
+    }
+
 
 }
 
@@ -645,25 +712,26 @@ player_recommendation = {
     'state': 'player_recommendation',
     '#GATE `Do you want to know more about some players? Marcus Rashford is my favorite from Manchester United. Well, if you\'re looking for a football player who can run faster than a cheetah on Red Bull, score goals like it\'s his job (oh wait,'
     'it actually is his job), and make the opposing team\'s defense look like a bunch of lost toddlers, then Marcus Rashford is your man. `': 'rashford_rec',
-    '#GATE `Do you want to know more about some players? Harry Kane is my favorite from Tottenham Hotspur. He is not '
+    '#GATE ` Harry Kane is my favorite from Tottenham Hotspur. He is not '
     'just a goal-scoring machine, he\'s also a great team player.'
     ' He has a knack for creating chances for his teammates and can change the course of a game with his passing and playmaking abilities.`': 'kane_rec',
-    '#GATE `Do you want to know more about some players? Kevin De Bruyne is my favorite Manchester City player. If you love players who can play any offensive role'
+    '#GATE ` Kevin De Bruyne is my favorite Manchester City player. If you love players who can play any offensive role'
     'and passes beautifully, you would love De Bruyne!`': 'de_bruyne_rec',
-    '#GATE `Do you want to know more about some players? Kante is my favorite Chelsea player. He\'s one of the most hard playing players I have ever seen.'
+    '#GATE ` Kante is my favorite Chelsea player. He\'s one of the most hard playing players I have ever seen.'
     'he always runs non-stop to take back possession from the opponent and he\'s very good at it too! What he is also good at is passing the ball and linking it with his fellow teammates'
-    'Overall, he\'s a wonderful team player and a truly devoted player!`': 'kante_rec'
+    'Overall, he\'s a wonderful team player and a truly devoted player!`': 'kante_rec',
+    '`You are picky haha.`':'fun_facts'
 }
 
 rashford_rec = {
     'state': 'rashford_rec',
-    '`In fact, if football was a video game, Marcus would be the cheat code that everyone wants to unlock. `': {
+    '`In fact, if football was a video game, Marcus would be the cheat code that everyone wants to unlock. `#GET_PHOTO_RASH': {
         '#SET_INTERESTED #GET_INTERESTED': {
             '#IF($INTERESTED=true)`Rashford appeared 233 times in this season and had 74 goals. He is absolutely one of the heated players. Do you want to look at some of his game stats?`': {
-                '[yes]': {
+                '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
                     '`He scored 15 goals and 4 assists out of his 29 appearances this season. His goal rate, shots on target, and expected goals are top 1% in the league per 90 minutes. Stats speaking of this, I am a big fan of Manchester United as well. Do you think you would like Manchester United? Manchester United is a team with a rich history and a tradition of excellence Speaking of this, I am a big fan of Manchester United as well. Do you think you would like Manchester United? Manchester United is a team with a rich history and a tradition of excellence.'
                     'If you want to support a team that has consistently been among the best in the world, then Manchester United is a great choice.`': {
-                        '[yes]': {
+                        '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
                             '`You know what, they are gonna meet their long-time enemy team Chelsea! The rivalry between Manchester United'
                             'and Chelsea is one of the most intense in English football, and every game between these two teams is a must-watch for fans. They were 1-1 last time! How intense!'
                             ' What do you think will be the score this time?`': {
@@ -672,10 +740,10 @@ rashford_rec = {
                                 }
                             }
                         },
-                        '[no]': 'team_recommendation'
+                        '[{nope, nah, don\'t,no, not}]': 'team_recommendation'
                     }
                 },
-                '[no]': 'player_recommendation'
+                '[{nope, nah, don\'t,no, not}]': 'player_recommendation'
             },
             '#IF($INTERESTED=false)': 'personal_story'
         }
@@ -684,13 +752,13 @@ rashford_rec = {
 
 kane_rec = {
     'state': 'kane_rec',
-    '`Despite his success on the field, Harry Kane remains humble and grounded.`': {
+    '`Despite his success on the field, Harry Kane remains humble and grounded.`#GET_PHOTO_KANE': {
         '#SET_INTERESTED #GET_INTERESTED': {
             '#IF($INTERESTED=true) `Harry Kane appeared 313 times and had 206 goals. You can call him one of the most successful commissioned players. Do you want to know how he performed?`': {
-                '[yes]': {
+                '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
                     '`Harry Kane boasts 24 goals and 2 assists. His goals expected, goals on target, and passes were within top 5%! Tottenham Hotspur is viral these days! Some of their players made wonderful performance at the World Cup. Tottenham Hotspur is viral these days! Some of their players made wonderful performance at the World Cup.'
                     'I personally like this team a lot! Do you think you would like it?`': {
-                        '[yes]': {
+                        '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
                             '`Great haha another Hotspur fan! Their next game is with team New Castle. I somehow think that New Castle has a decent ranking (they exceeds Hotspur sometime these days!) because they made lots of draws.'
                             'Last time when they met, New Castle had 2 and Tottenham Hotspur had 1. What do you think will be their next score?`': {
                                 '#UNX': {
@@ -699,10 +767,10 @@ kane_rec = {
                                 },
                             }
                         },
-                        '[no]': 'team_recommendation'
+                        '[{nope, nah, don\'t,no, not}]': 'team_recommendation'
                     }
                 },
-                '[no]': 'player_recommendation'
+                '[{nope, nah, don\'t,no, not}]': 'player_recommendation'
             },
             '#IF($INTERESTED=false)': 'personal_story'
         },
@@ -712,82 +780,176 @@ kane_rec = {
 
 de_bruyne_rec = {
     'state': 'de_bruyne_rec',
-    '``': {
+    '`He is amazing!`': {
         '#SET_INTERESTED #GET_INTERESTED': {
-            '#IF($INTERESTED=true)': {
-                '`De Bruyne appeared almost 240 times in the premier league and had 101 assists! He created 160 big chances for his teamates. Truly, he is on top of his league. Do you want to know more about how he performed?`': {
-                    '[yes]': {
+            '#IF($INTERESTED=true)`De Bruyne appeared almost 240 times in the premier league and had 101 assists! He created 160 big chances for his teamates. Truly, he is on top of his league. Do you want to know more about how he performed?`': {
+                    '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
                         '`De Bruyne has 5 goals and 15 assissts. He is the number one player in assists, key passes, and crosses. Manchester City is truly one of the strongest team in all of Europe! However, even this team is impacted by whether De Bruyne is playing or not.'
-                        'In other words, he is the focal point of the playstyle of Manchester United that highlights possession which requires good passing!`': {
-                            '[yes]': {
+                        'In other words, he is the focal point of the playstyle of Manchester United that highlights possession which requires good passing! Do you think you will like him?`': {
+                            '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
                                 'cool': 'end'
                             },
-                            '[no]': 'team_recommendation'
+                            '[{nope, nah, don\'t,no, not]': 'team_recommendation'
                         }
                     },
-                    '[no]': 'player_recommendation'
-                }
-            },
+                    '[{nope, nah, don\'t,no, not]': 'player_recommendation'
+                },
             '#IF($INTERESTED=false)': 'player_recommendation'
+            }
         }
     }
-}
+
 
 kante_rec = {
     'state': 'kante_rec',
-    '``': {
+    '`He is absolutely viral these days!`#GET_PHOTO_kante': {
         '#SET_INTERESTED #GET_INTERESTED': {
-            '#IF($INTERESTED=true)': {
-                '`Kante appeared around 230 games in the premier league. He made a staggering 505 interceptions and 1685 recoveries, which means he did astonishingly well in recovering the ball! Do you want to know more about how he performed?`': {
-                    '[yes]': {
+            '#IF($INTERESTED=true)`Kante appeared around 230 games in the premier league. He made a staggering 505 interceptions and 1685 recoveries, which means he did astonishingly well in recovering the ball! Do you want to know more about how he performed?`': {
+                    '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
                         '`Kante didn\'t play much this season due to his recent injuty, but Chelsea historically has a very strong performance! Although Kante is not the type of player that gets the spotlight, Chelsea holds differently whenever Kante is playing for them'
-                        'When he plays, there\'s always a stability to Chelsea that makes them look very hard to beat!`': {
-                            '[yes]': {
+                        'When he plays, there\'s always a stability to Chelsea that makes them look very hard to beat! Do you think you will like him?`': {
+                            '[{yes, yep, yeah, cool, sure, okay, ok, all right, alright, certainly, absolutely, yup, surely}]': {
                                 'cool': 'end'
                             },
-                            '[no]': 'team_recommendation'
+                            '[{nope, nah, don\'t,no, not]': 'team_recommendation'
                         }
                     },
-                    '[no]': 'player_recommendation'
-                }
-            },
+                    '[{nope, nah, don\'t,no, not]': 'player_recommendation'
+                },
             '#IF($INTERESTED=false)': 'player_recommendation'
+            }
         }
     }
-}
+
 personal_story = {
     'state': 'personal_story',
     '#GATE`You know I remember I never wanted to do any exercise before I watched EPL. After watching that I found it really cool to just run freely on the field and even sweating makes me feel happy!`': {
         '/.*/': {
-            '`Haha, you know how people say soccer really cheers people up. That is exactly what I feel. Speaking of that, i want to share this video with you. I really feel the same.`': 'video'
+            '`Haha, you know how people say soccer really cheers people up. That is exactly what I feel.  `': 'end_state'
         }
     },
     '#GATE `I once had a big fight with my dad because he really thought Arsenal would win but I thought Manchester City would win the champion. I mean I got it right. But we ended up just having a wonderful time watching the final together with beer and barbecue! It was such a wonderful time!': 'fun_fact'
 }
 
-team_recommendation = {
-    'state': 'team_recommendation',
-    '#GATE `Do you want to hear about the teams in Premier League then? `': 'end'
+team_recommendation={
+    'state':'team_recommendation',
+    '#GATE `Do you want to hear about the teams in Premier League then? `':'arsenal_rec',
+    '#GATE `There are some teams that I like. `':'new_castle_rec',
+    '#GATE `Well `':'liverpool_rec',
+    '#GATE `Haha there are loads of teams out there. `':'aston_villa_rec'
+}
+
+arsenal_rec = {
+    'state':'arsenal_rec',
+    '`I can recommend Arsenal to you in that case! They\'re currently on top of the league with great improvements in this recent season. '
+    'Overall, they have a similar play-style to Manchester City, very elegant, trying to dominate the opponent team. Arsenal is differentiated from'
+    'Manchester City in several different ways however. One of the most noticeable is that Arsenal is the only team to have won the premier league'
+    'without any losses! Isn\'t that amazing! If you want a team that is not only playing well right now but also played well in the past - you can certainly enjoy talking about the unbeatable Arsenal with old Arsenal fans - then Arsenal is your team! Would you be interested?`': {
+        '#SET_INTERESTED #GET_INTERESTED': {
+            '#IF($INTERESTED = true)': {
+                '`Sure! Let\'s start with how Arsenal is playing this season. stats.':'end'
+            },
+            '#IF($INTERESTED = false)': 'team_recommendation'
+        }
+
+    }
+}
+
+new_castle_rec = {
+    'state':'new_castle_rec',
+    '`I can recommend New Castle to you in that case! They\'re really performing much better than expectations this season. '
+    'One of the biggest strengths they have right now is that they have a lot of money. In fact, they are currently one of the richest if not the most rich team in the world!'
+    'Because they got rich recently, their standing doesn\'t reflect their wealth, but if you want a team whose future is guaranteed, New Castle is the team you would want to root for!`': {
+        '#SET_INTERESTED #GET_INTERESTED': {
+            '#IF($INTERESTED = true)': {
+                '`Sure! Let\'s start with how New Castle is playing this season. stats. They play a very interesting style, where they tighten up the center of the field to get the ball back':'end'
+            },
+            '#IF($INTERESTED = false)': 'team_recommendation'
+        }
+
+    }
+}
+
+liverpool_rec = {
+    'state':'liverpool_rec',
+    '`Liverpool is a good one! Although they are not performing up to their name this season, football fans are sure that Liverpool will eventually live up to their name. '
+    'Liverpool is the team that competed with Manchester City for the premier league title for several of years now. Their playstyle is fun to watch and very speedy and aggressive. '
+    'They use a unique tactic called gegen pressing where the strikers are the ones to pressure the opponent defenders that have the ball. Very interesting right? '
+    'Not to mention that Liverpool has the most speediest players in the league like Mane and Salah. If you love this unique style, you might love Liverpool!`': {
+        '#SET_INTERESTED #GET_INTERESTED': {
+            '#IF($INTERESTED = true)': {
+                '`Sure! Let\'s start with how Liverpool is playing this season. stats.':'end'
+            },
+            '#IF($INTERESTED = false)': 'team_recommendation'
+        }
+
+    }
+}
+
+aston_villa_rec = {
+    'state':'aston_villa_rec',
+    '`Aston Villa is a classic one! They haven\'t been top performers for a long while now, but this is a team with history. '
+    'They won the first division 7 times, won 7 FA cups(a tournement throughout all divisions of the premier league) and they even won a European Cup.'
+    'The now retired European Cup title is particularly amazing because only 4 teams in the English league won this trophy: Manchester United, Liverpool, Nottingham Forest, and Aston Villa. '
+    'If you love to know about the history of the team and talk about it with fellow fans, Aston Villa might fit your criteria!`': {
+        '#SET_INTERESTED #GET_INTERESTED': {
+            '#IF($INTERESTED = true)': {
+                '`Sure! Let\'s start with how Aston Villa is playing this season. stats.':'end'
+            },
+            '#IF($INTERESTED = false)': 'team_recommendation'
+        }
+
+    }
 }
 fun_facts = {
-    'state': 'fun_fact',
-    '#GATE `A lot of bizarre things happen in the league. A former Manchester United player Ashley Young, when playing against Swansea City in 2014 was caught in the camera for eating bird poop that fell down from the sky. He is still denying the incident!`': 'end',
-    '#GATE `There are some funny incidents about premier league players in national events as well. In the world cup, English player and former Tottenham player Gary Lineker once pooped during the game. He was caught in camera rubbing on the grass to distinguish evidence. He admitted this funny incident on TV.`': 'end',
-    '#GATE `Arsenal and Tottenham games are very famous for being intense. They call it the London Derby since both Tottenham and Arsenal are based in London. But did you know that Harry Kane once was in the Arsenal youth academy? The Arsenal youth academy eventually released him for being too chubby at that time.`': 'end'
+    'state': 'fun_facts',
+    '#GATE `A lot of bizarre things happen in the league. A former Manchester United player Ashley Young, when playing against Swansea City in 2014 was caught in the camera for eating bird poop that fell down from the sky. He is still denying the incident!`': 'end_state',
+    '#GATE `There are some funny incidents about premier league players in national events as well. In the world cup, English player and former Tottenham player Gary Lineker once pooped during the game. He was caught in camera rubbing on the grass to distinguish evidence. He admitted this funny incident on TV.`': 'end_state',
+    '#GATE `Arsenal and Tottenham games are very famous for being intense. They call it the London Derby since both Tottenham and Arsenal are based in London. But did you know that Harry Kane once was in the Arsenal youth academy? The Arsenal youth academy eventually released him for being too chubby at that time.`': 'end_state'
 }
 
 end_state = {
     'state': 'end_state',
     '/.*/': {
-        '`haha I know it\'s pretty funny right`': 'end'
+        '`haha I know it\'s pretty funny right`': {
+            '`Do you think you have gained some knowledge in EPL after chatting with me?`':{
+                '`[{yes,so,well,yep, yeah, helpful, useful,sort,good,ya}]`':{
+                    '`You know I\'m still learning how to talk well, that\'s also a concern of our virtual world haha. Do you think I speak naturally? You know, like you humans?`':{
+                        '/.*/':{
+                            '`haha Thanks. Do you think I made silly mistakes today?`':{
+                                '`/.*/':{
+                                    '`Okay...Thanks, uhhh. Do you think the chatting is satisfactory?`':{
+                                        '/.*/':{
+                                            '`Okay!! It\'s nice to talk with you! Hope to see you next time!!!!`'
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     },
 }
 
+global_transitions={
+    '[{virtual,robot,ai,chat,bot,chatbot,chatgpt}]':{
 
+        '`well,well, You can call me AI, or chatbot. But no matter what I mean to you, giving you information about EPL is my biggest mission haha`':'player_recommendation',
+    },
+    '[{favorite team,favourite team, team you like, best team}]':{
+
+         'hmmm lemme see, I like De Bruyne so I also like his team Manchester City.`':'fun_facts'
+    }
+}
 def save(df: DialogueFlow, varfile: str):
     df.run()
     d = {k: v for k, v in df.vars().items() if not k.startswith('_')}
     pickle.dump(d, open(varfile, 'wb'))
+
+
 
 
 def load(df: DialogueFlow, varfile: str):
